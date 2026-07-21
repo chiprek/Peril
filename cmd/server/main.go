@@ -2,9 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -15,16 +19,32 @@ func main() {
 	connectionString := "amqp://guest:guest@localhost:5672/"
 	conn, err := amqp.Dial(connectionString)
 	if err != nil {
-		fmt.Printf("Failed to connect to RabbitMQ: %s\n", err)
-		return
+		log.Fatalf("Failed to connect to RabbitMQ: %s\n", err)
 	}
 	defer conn.Close()
 
 	fmt.Println("Connected to RabbitMQ")
 
+	channel, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("failed to open a channel: %s\n", err)
+	}
+	defer channel.Close()
+	fmt.Println("channel opened")
+
+	err = pubsub.PublishJSON(channel, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{
+		IsPaused: true,
+	})
+	if err != nil {
+		log.Fatalf("failed to publish message: %s\n", err)
+	}
+	fmt.Println("message published")
+
 	sigChan := make(chan os.Signal, 1)
 
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	defer signal.Stop(sigChan)
 
 	<-sigChan
 	fmt.Println("\nRecevied shutdown signal, closing connection...")
