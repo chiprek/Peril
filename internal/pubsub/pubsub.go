@@ -41,12 +41,12 @@ func DeclareAndBind(conn *amqp.Connection, exchange, queueName, key string, queu
 	isTransient := queueType == Transient
 
 	queue, err := ch.QueueDeclare(
-		queueName,
-		queueType == Durable,
-		isTransient,
-		isTransient,
-		false,
-		nil,
+		queueName,            // queueName
+		queueType == Durable, // durable
+		isTransient,          // delete when unused
+		isTransient,          // exclusive
+		false,                // no wait
+		nil,                  // args
 	)
 
 	if err != nil {
@@ -54,11 +54,11 @@ func DeclareAndBind(conn *amqp.Connection, exchange, queueName, key string, queu
 	}
 
 	err = ch.QueueBind(
-		queue.Name,
-		key,
-		exchange,
-		false,
-		nil,
+		queue.Name, // queueName
+		key,        // routing key
+		exchange,   // exchange
+		false,      // no wait
+		nil,        // args
 	)
 
 	if err != nil {
